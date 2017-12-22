@@ -14,7 +14,7 @@
       <div class="field">
         <label class="label">Reason</label>
         <div class="control">
-          <input class="input" type="text" placeholder="Reason" v-model="reason" required>
+          <v-select v-model="reason" :options="reasons"></v-select>
         </div>
       </div>
 
@@ -30,14 +30,19 @@
 
 <script>
   import db from './firebaseInit'
+  import vSelect from 'vue-select'
   export default {
     name: 'new-contact',
     data () {
       return {
         name: null,
         reason: null,
+        reasons: [],
         class: 'mr. T'
       }
+    },
+    components: {
+      'v-select': vSelect
     },
     methods: {
       saveContact () {
@@ -45,11 +50,15 @@
           name: this.name,
           reason: this.reason,
           class: this.class,
+          inHall: true,
+          timeOut: new Date().getTime(),
           slug: this.generateUUID()
         })
           .then(docRef => {
             console.log('Doc written with ID: ', docRef.id)
-            Object.assign(this.$data, this.$options.data())
+            // Object.assign(this.$data, this.$options.data())
+            this.name = ''
+            this.reason = ''
           })
           .catch(function (error) {
             console.error('Error adding document: ', error)
@@ -64,6 +73,15 @@
         })
         return uuid
       }
+    },
+    created () {
+      db
+      .collection('reasons')
+      .get().then(querySnapshot => {
+        querySnapshot.forEach(doc => {
+          this.reasons.push(doc.data().name)
+        })
+      })
     }
   }
 </script>

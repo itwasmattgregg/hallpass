@@ -5,7 +5,8 @@
         <div class="navbar-brand">
           <router-link
             to="/"
-            class="navbar-item">
+            class="navbar-item"
+            :class="this.class">
             HallPass
           </router-link>
         </div>
@@ -25,11 +26,16 @@
 
 <script>
 export default {
-  name: 'app'
+  name: 'app',
+  data () {
+    return {
+      class: 'mr. T'
+    }
+  }
 }
 </script>
 
-<style>
+<style lang="scss">
 #app {
   font-family: 'Avenir', Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -42,6 +48,10 @@ export default {
   color: white;
 }
 a {
-  color: white;
+  color: purple;
+
+  &:hover {
+    color: darken(purple, 5%);
+  }
 }
 </style>

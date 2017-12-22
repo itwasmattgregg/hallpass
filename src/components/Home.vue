@@ -1,7 +1,7 @@
 <template>
   <section class="container">
     <div class="columns">
-      <div class="column is-8">
+      <div class="column">
         <new-contact/>
         <h1>Currently Checked Out From Your Class:</h1>
         <div
@@ -78,11 +78,16 @@
 
         <div
           class="user-list"
-          v-for="person in contacts"
+          v-for="person in sorted_students"
           :key="person.slug">
           <div class="columns">
             <div class="column is-8">
-              <p class="user-list__header">{{ person.name }}</p>
+              <p class="user-list__header">
+                <router-link
+                :to="{ name: 'view-contact', params: { person: person.slug }}">
+                  {{ person.name }}
+                </router-link>
+              </p>
               <div class="inner">
                 <div class="left">
                   <p class="user-list__sub"><strong>Reason</strong>: {{ person.reason }}</p>
@@ -90,13 +95,17 @@
               </div>
             </div>
             <div class="column is-4 right">
-              <router-link
+              <div>{{ timeSince(person.timeOut) }}</div>
+              <button
                 class="button is-primary"
-                :to="{ name: 'view-contact', params: { person: person.slug }}">
-                View Person
-              </router-link>
+                v-on:click="checkIn(person.id)">
+                Check In
+              </Button>
             </div>
           </div>
+        </div>
+        <div id='list-wrapper' v-if="contacts.length === 0">
+          Nothing to see here
         </div>
       </div>
     </div>
@@ -113,29 +122,72 @@ export default {
   data () {
     return {
       contacts: [],
-      loading: true
+      loading: true,
+      now: Math.trunc((new Date()).getTime() / 1000)
+    }
+  },
+  computed: {
+    sorted_students () {
+      return this.contacts.sort((a, b) => {
+        if (a.name < b.name) return -1
+        if (a.name > b.name) return 1
+        return 0
+      })
     }
   },
   components: {
     NewContact
   },
+  methods: {
+    timeSince (timeOut) {
+      let seconds = (this.now - Math.trunc((timeOut / 1000))) % 60
+      const minutes = Math.trunc((this.now - Math.trunc((timeOut / 1000))) / 60) % 60
+
+      if (seconds.toString().length <= 1) {
+        seconds = '0' + seconds.toString()
+      }
+
+      return minutes + ':' + seconds
+    },
+    checkIn (id) {
+      const doc = db.collection('contacts').doc(id)
+      doc.update({
+        'timeIn': this.now,
+        'inHall': false
+      })
+    }
+  },
   created () {
     db
       .collection('contacts')
+      .where('inHall', '==', true)
       .onSnapshot(querySnapshot => {
         this.loading = false
-        this.contacts = []
-        querySnapshot.forEach(doc => {
-          let data = {
-            id: doc.id,
-            name: doc.data().name,
-            reason: doc.data().reason,
-            class: doc.data().class,
-            slug: doc.data().slug
+        querySnapshot.docChanges.forEach(change => {
+          if (change.type === 'added') {
+            const doc = change.doc
+            let data = {
+              id: doc.id,
+              name: doc.data().name,
+              reason: doc.data().reason,
+              class: doc.data().class,
+              timeOut: doc.data().timeOut,
+              slug: doc.data().slug
+            }
+            this.contacts.push(data)
           }
-          this.contacts.push(data)
+          // Assuming the only thing that will ever be modified is active
+          if (change.type === 'removed') {
+            const id = this.contacts.findIndex(contact => contact.id === change.doc.id)
+            if (id >= 0) {
+              this.contacts.splice(id, 1)
+            }
+          }
         })
       })
+    window.setInterval(() => {
+      this.now = Math.trunc((new Date()).getTime() / 1000)
+    }, 1000)
   }
 }
 </script>
