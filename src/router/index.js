@@ -2,7 +2,7 @@ import Vue from 'vue'
 import Router from 'vue-router'
 import Home from '@/components/Home'
 import ViewContact from '@/components/ViewContact'
-import NewContact from '@/components/NewContact'
+import FullList from '@/components/FullList'
 
 Vue.use(Router)
 
@@ -15,9 +15,9 @@ export default new Router({
       component: Home
     },
     {
-      path: '/add',
-      name: 'new-contact',
-      component: NewContact
+      path: '/full-list',
+      name: 'full-list',
+      component: FullList
     },
     {
       path: '/:person',

@@ -23,7 +23,7 @@
       }
     },
     beforeRouteEnter (to, from, next) {
-      db.collection('contacts').where('slug', '==', to.params.person).get().then((querySnapshot) => {
+      db.collection('passes').where('slug', '==', to.params.person).get().then((querySnapshot) => {
         querySnapshot.forEach((doc) => {
           next(vm => {
             vm.name = doc.data().name
@@ -37,7 +37,7 @@
     },
     methods: {
       fetchData () {
-        db.collection('contacts').where('slug', '==', this.$route.params.person).get().then((querySnapshot) => {
+        db.collection('passes').where('slug', '==', this.$route.params.person).get().then((querySnapshot) => {
           querySnapshot.forEach((doc) => {
             console.log(doc.id, ' => ', doc.data())
             this.name = doc.data().name

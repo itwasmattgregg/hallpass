@@ -104,7 +104,7 @@
             </div>
           </div>
         </div>
-        <div id='list-wrapper' v-if="contacts.length === 0">
+        <div id='list-wrapper' v-if="passes.length === 0">
           Nothing to see here
         </div>
       </div>
@@ -121,17 +121,15 @@ export default {
   name: 'home',
   data () {
     return {
-      contacts: [],
+      passes: [],
       loading: true,
       now: Math.trunc((new Date()).getTime() / 1000)
     }
   },
   computed: {
     sorted_students () {
-      return this.contacts.sort((a, b) => {
-        if (a.name < b.name) return -1
-        if (a.name > b.name) return 1
-        return 0
+      return this.passes.sort((a, b) => {
+        return b.timeOut - a.timeOut
       })
     }
   },
@@ -150,7 +148,7 @@ export default {
       return minutes + ':' + seconds
     },
     checkIn (id) {
-      const doc = db.collection('contacts').doc(id)
+      const doc = db.collection('passes').doc(id)
       doc.update({
         'timeIn': this.now,
         'inHall': false
@@ -159,7 +157,7 @@ export default {
   },
   created () {
     db
-      .collection('contacts')
+      .collection('passes')
       .where('inHall', '==', true)
       .onSnapshot(querySnapshot => {
         this.loading = false
@@ -174,13 +172,13 @@ export default {
               timeOut: doc.data().timeOut,
               slug: doc.data().slug
             }
-            this.contacts.push(data)
+            this.passes.push(data)
           }
           // Assuming the only thing that will ever be modified is active
           if (change.type === 'removed') {
-            const id = this.contacts.findIndex(contact => contact.id === change.doc.id)
+            const id = this.passes.findIndex(contact => contact.id === change.doc.id)
             if (id >= 0) {
-              this.contacts.splice(id, 1)
+              this.passes.splice(id, 1)
             }
           }
         })

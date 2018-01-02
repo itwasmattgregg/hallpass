@@ -46,7 +46,7 @@
     },
     methods: {
       saveContact () {
-        db.collection('contacts').add({
+        db.collection('passes').add({
           name: this.name,
           reason: this.reason,
           class: this.class,

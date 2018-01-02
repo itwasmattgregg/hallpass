@@ -44,8 +44,11 @@ export default {
   min-height: 100vh;
 }
 .navbar {
-  background: #4285f4;
+  background: purple;
   color: white;
+  .navbar-item {
+    color: white;
+  }
 }
 a {
   color: purple;
