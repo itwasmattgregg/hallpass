@@ -183,6 +183,7 @@ export default {
           }
         })
       })
+      // NEed to destroy interval if unmount
     window.setInterval(() => {
       this.now = Math.trunc((new Date()).getTime() / 1000)
     }, 1000)
