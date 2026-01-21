@@ -118,7 +118,6 @@ hallpass/
 - **Vue Router** - Client-side routing
 - **Firebase Firestore** - Real-time database
 - **Webpack** - Module bundler
-- **Bulma CSS** - CSS framework (via classes)
 - **vue-select** - Select dropdown component
 
 ## Browser Support

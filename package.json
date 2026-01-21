@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "webpack serve --config build/webpack.dev.conf.js",
     "lint": "eslint --ext .js,.vue src",
+    "deploy": "npm run build && firebase deploy --only hosting",
     "build": "node build/build.js"
   },
   "dependencies": {
@@ -37,10 +38,11 @@
     "eslint-plugin-vue": "^9.30.0",
     "file-loader": "^6.2.0",
     "firebase": "^11.0.1",
+    "firebase-tools": "^13.0.0",
     "html-webpack-plugin": "^5.6.0",
     "mini-css-extract-plugin": "^2.9.1",
     "node-notifier": "^10.0.1",
-    "ora": "^4.1.2",
+    "ora": "^5.4.1",
     "portfinder": "^1.0.32",
     "postcss": "^8.4.47",
     "postcss-import": "^16.1.0",

@@ -45,6 +45,7 @@ import db from './firebaseInit'
 import { collection, addDoc } from 'firebase/firestore'
 import vSelect from 'vue-select'
 import errorHandler from './ErrorHandler'
+import { getSchoolId } from '@/utils/school'
 
 export default {
   name: 'CheckOutForm',
@@ -75,11 +76,18 @@ export default {
   },
   methods: {
     async saveContact () {
+      const schoolId = getSchoolId()
+      if (!schoolId) {
+        this.$router.push('/school-select')
+        return
+      }
+
       try {
         await addDoc(collection(db, 'passes'), {
           name: this.name,
           reason: this.reason,
           class: this.className,
+          schoolId: schoolId,
           inHall: true,
           timeOut: new Date().getTime(),
           slug: this.generateUUID()

@@ -32,6 +32,7 @@
 import db from './firebaseInit'
 import { collection, query, where, getDocs } from 'firebase/firestore'
 import errorHandler from './ErrorHandler'
+import { getSchoolId } from '@/utils/school'
 
 export default {
   name: 'view-contact',
@@ -42,8 +43,15 @@ export default {
     }
   },
   beforeRouteEnter (to, from, next) {
+    const schoolId = getSchoolId()
+    if (!schoolId) {
+      next('/school-select')
+      return
+    }
+
     const q = query(
       collection(db, 'passes'),
+      where('schoolId', '==', schoolId),
       where('slug', '==', to.params.person)
     )
     getDocs(q)
@@ -79,8 +87,15 @@ export default {
   methods: {
     async fetchData () {
       try {
+        const schoolId = getSchoolId()
+        if (!schoolId) {
+          this.$router.push('/school-select')
+          return
+        }
+
         const q = query(
           collection(db, 'passes'),
+          where('schoolId', '==', schoolId),
           where('slug', '==', this.$route.params.person)
         )
         const querySnapshot = await getDocs(q)
@@ -90,7 +105,7 @@ export default {
             'Student not found.'
           )
           alert(errorInfo.message)
-          this.$router.push('/')
+          this.$router.push('/home')
           return
         }
         querySnapshot.forEach((doc) => {

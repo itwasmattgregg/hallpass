@@ -1,10 +1,10 @@
 <template>
   <div id="app">
-    <header>
+    <header v-if="showNavbar">
       <nav class="navbar">
         <div class="navbar-container">
           <div class="navbar-brand">
-            <router-link to="/" class="navbar-logo">
+            <router-link to="/home" class="navbar-logo">
               <span class="logo-icon">🚪</span>
               <span class="logo-text">HallPass</span>
             </router-link>
@@ -12,7 +12,7 @@
 
           <div class="navbar-end">
             <router-link
-              to="/"
+              to="/home"
               class="navbar-item"
               active-class="is-active"
               exact>
@@ -24,22 +24,43 @@
               active-class="is-active">
               View All
             </router-link>
+            <button
+              class="navbar-item logout-button"
+              @click="logout">
+              Log Out
+            </button>
           </div>
         </div>
       </nav>
     </header>
-    <main class="main-content">
+    <main class="main-content" :class="{ 'no-navbar': !showNavbar, 'no-padding': $route.name === 'marketing' }">
       <router-view/>
     </main>
   </div>
 </template>
 
 <script>
+import { getSchoolId, clearSchool } from '@/utils/school'
+
 export default {
   name: 'app',
   data () {
     return {
       class: 'mr. T'
+    }
+  },
+  computed: {
+    hasSchool () {
+      return !!getSchoolId()
+    },
+    showNavbar () {
+      return this.$route.name !== 'school-select' && this.$route.name !== 'marketing'
+    }
+  },
+  methods: {
+    logout () {
+      clearSchool()
+      this.$router.push('/school-select')
     }
   }
 }
@@ -154,12 +175,29 @@ $radius-lg: 12px;
       background-color: rgba($primary, 0.1);
     }
   }
+
+  .logout-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+  }
 }
 
 .main-content {
   max-width: 1200px;
   margin: 0 auto;
   padding: 32px 24px;
+
+  &.no-navbar {
+    padding-top: 32px;
+  }
+
+  &.no-padding {
+    padding: 0;
+    max-width: 100%;
+    background: $bg-primary;
+  }
 }
 
 a {

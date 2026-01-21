@@ -1,8 +1,16 @@
 <template>
   <section class="full-list-container">
     <div class="page-header">
-      <h1>All Hall Passes</h1>
-      <p class="page-subtitle">View and manage all hall pass records</p>
+      <div class="header-content">
+        <div>
+          <h1>All Hall Passes</h1>
+          <p class="page-subtitle">View and manage all hall pass records</p>
+        </div>
+        <div class="school-info">
+          <span class="school-label">School ID:</span>
+          <span class="school-id">{{ schoolId }}</span>
+        </div>
+      </div>
     </div>
 
     <!-- Filters -->
@@ -147,9 +155,11 @@ import {
   onSnapshot,
   doc,
   updateDoc,
-  orderBy
+  orderBy,
+  where
 } from 'firebase/firestore'
 import errorHandler from './ErrorHandler'
+import { getSchoolId } from '@/utils/school'
 
 export default {
   name: 'full-list',
@@ -162,7 +172,8 @@ export default {
       intervalId: null,
       statusFilter: 'all',
       sortBy: 'timeOut',
-      searchQuery: ''
+      searchQuery: '',
+      schoolId: null
     }
   },
   computed: {
@@ -279,8 +290,20 @@ export default {
     }
   },
   created () {
-    // Get all passes (both active and inactive)
-    const q = query(collection(db, 'passes'), orderBy('timeOut', 'desc'))
+    const schoolId = getSchoolId()
+    if (!schoolId) {
+      this.$router.push('/school-select')
+      return
+    }
+
+    this.schoolId = schoolId
+
+    // Get all passes (both active and inactive) for this school
+    const q = query(
+      collection(db, 'passes'),
+      where('schoolId', '==', schoolId),
+      orderBy('timeOut', 'desc')
+    )
     this.unsubscribe = onSnapshot(
       q,
       (querySnapshot) => {
@@ -351,6 +374,14 @@ $radius-lg: 12px;
 .page-header {
   margin-bottom: 32px;
 
+  .header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+
   h1 {
     font-size: 32px;
     font-weight: 700;
@@ -362,6 +393,40 @@ $radius-lg: 12px;
     font-size: 16px;
     color: $text-secondary;
     margin: 0;
+  }
+
+  .school-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: rgba($primary, 0.1);
+    border-radius: $radius-md;
+    border: 1px solid rgba($primary, 0.2);
+
+    .school-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: $text-secondary;
+    }
+
+    .school-id {
+      font-size: 14px;
+      font-weight: 700;
+      color: $primary;
+      font-family: 'Courier New', monospace;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .header-content {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .school-info {
+      width: 100%;
+    }
   }
 }
 

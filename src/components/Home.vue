@@ -110,6 +110,7 @@ import {
 } from 'firebase/firestore'
 import CheckOutForm from './CheckOutForm'
 import errorHandler from './ErrorHandler'
+import { getSchoolId } from '@/utils/school'
 
 export default {
   name: 'HomePage',
@@ -177,7 +178,17 @@ export default {
     }
   },
   created () {
-    const q = query(collection(db, 'passes'), where('inHall', '==', true))
+    const schoolId = getSchoolId()
+    if (!schoolId) {
+      this.$router.push('/school-select')
+      return
+    }
+
+    const q = query(
+      collection(db, 'passes'),
+      where('schoolId', '==', schoolId),
+      where('inHall', '==', true)
+    )
     this.unsubscribe = onSnapshot(q, (querySnapshot) => {
       this.loading = false
       querySnapshot.docChanges().forEach((change) => {
