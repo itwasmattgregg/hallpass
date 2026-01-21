@@ -3,8 +3,12 @@
 import Vue from 'vue'
 import App from './App'
 import router from './router'
+import { initTheme } from './utils/theme'
 
 Vue.config.productionTip = false
+
+// Initialize theme before creating Vue instance
+initTheme()
 
 /* eslint-disable no-new */
 new Vue({

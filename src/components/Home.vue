@@ -54,15 +54,9 @@
           <div class="pass-card-content">
             <div class="pass-card-main">
               <div class="pass-header">
-                <router-link
-                  :to="{
-                    name: 'view-contact',
-                    params: { person: person.slug },
-                  }"
-                  class="student-name"
-                >
+                <span class="student-name">
                   {{ person.name }}
-                </router-link>
+                </span>
                 <span class="status-indicator active"></span>
               </div>
               <div class="pass-details">
@@ -111,6 +105,7 @@ import {
 import CheckOutForm from './CheckOutForm'
 import errorHandler from './ErrorHandler'
 import { getSchoolId } from '@/utils/school'
+import { getBrowserId } from '@/utils/browser'
 
 export default {
   name: 'HomePage',
@@ -184,36 +179,54 @@ export default {
       return
     }
 
+    const browserId = getBrowserId()
     const q = query(
       collection(db, 'passes'),
       where('schoolId', '==', schoolId),
+      where('browserId', '==', browserId),
       where('inHall', '==', true)
     )
     this.unsubscribe = onSnapshot(q, (querySnapshot) => {
       this.loading = false
+
+      // Handle initial snapshot and changes
+      // Query already filters by schoolId, browserId, and inHall === true
       querySnapshot.docChanges().forEach((change) => {
         if (change.type === 'added') {
           const doc = change.doc
-          const data = {
+          const data = doc.data()
+          this.passes.push({
             id: doc.id,
-            name: doc.data().name,
-            reason: doc.data().reason,
-            class: doc.data().class,
-            timeOut: doc.data().timeOut,
-            slug: doc.data().slug
-          }
-          this.passes.push(data)
+            name: data.name,
+            reason: data.reason,
+            class: data.class,
+            timeOut: data.timeOut,
+            slug: data.slug
+          })
         }
-        // Assuming the only thing that will ever be modified is active
-        if (change.type === 'removed') {
-          const id = this.passes.findIndex(
-            (contact) => contact.id === change.doc.id
+        if (change.type === 'modified') {
+          // If a pass was modified (e.g., checked in), Firestore will automatically
+          // remove it from results since inHall will be false, so we handle it as removed
+          const index = this.passes.findIndex(
+            (pass) => pass.id === change.doc.id
           )
-          if (id >= 0) {
-            this.passes.splice(id, 1)
+          if (index >= 0) {
+            this.passes.splice(index, 1)
+          }
+        }
+        if (change.type === 'removed') {
+          const index = this.passes.findIndex(
+            (pass) => pass.id === change.doc.id
+          )
+          if (index >= 0) {
+            this.passes.splice(index, 1)
           }
         }
       })
+    }, (error) => {
+      this.loading = false
+      const errorInfo = errorHandler.handleError(error, 'Failed to load passes.')
+      alert(errorInfo.message)
     })
     // Update timer every second
     this.intervalId = window.setInterval(() => {
@@ -232,20 +245,21 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-$primary: #2563eb;
-$primary-dark: #1e40af;
-$secondary: #10b981;
-$text-primary: #1f2937;
-$text-secondary: #6b7280;
-$text-light: #9ca3af;
-$bg-primary: #f9fafb;
-$bg-secondary: #ffffff;
-$border-color: #e5e7eb;
-$shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-$shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-$shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-$radius-md: 8px;
-$radius-lg: 12px;
+// Use CSS variables for theme support
+$primary: var(--color-primary);
+$primary-dark: var(--color-primary-dark);
+$secondary: var(--color-secondary);
+$text-primary: var(--color-text-primary);
+$text-secondary: var(--color-text-secondary);
+$text-light: var(--color-text-light);
+$bg-primary: var(--color-bg-primary);
+$bg-secondary: var(--color-bg-secondary);
+$border-color: var(--color-border);
+$shadow-sm: var(--shadow-sm);
+$shadow-md: var(--shadow-md);
+$shadow-lg: var(--shadow-lg);
+$radius-md: var(--radius-md);
+$radius-lg: var(--radius-lg);
 
 .home-container {
   width: 100%;
@@ -363,12 +377,6 @@ $radius-lg: 12px;
       font-size: 20px;
       font-weight: 700;
       color: $text-primary;
-      text-decoration: none;
-      transition: color 0.2s ease;
-
-      &:hover {
-        color: $primary;
-      }
     }
 
     .status-indicator {
@@ -494,7 +502,12 @@ $radius-lg: 12px;
 .animated-background__sub,
 .animated-background__button {
   animation: placeHolderShimmer 1s linear infinite;
-  background: linear-gradient(to right, #eeeeee 8%, #dddddd 18%, #eeeeee 33%);
+  background: linear-gradient(
+    to right,
+    var(--skeleton-base) 8%,
+    var(--skeleton-highlight) 18%,
+    var(--skeleton-base) 33%
+  );
   background-size: 800px 104px;
   border-radius: 4px;
 }

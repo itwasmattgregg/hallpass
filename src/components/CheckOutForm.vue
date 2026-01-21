@@ -46,6 +46,7 @@ import { collection, addDoc } from 'firebase/firestore'
 import vSelect from 'vue-select'
 import errorHandler from './ErrorHandler'
 import { getSchoolId } from '@/utils/school'
+import { getBrowserId } from '@/utils/browser'
 
 export default {
   name: 'CheckOutForm',
@@ -83,11 +84,13 @@ export default {
       }
 
       try {
+        const browserId = getBrowserId()
         await addDoc(collection(db, 'passes'), {
           name: this.name,
           reason: this.reason,
           class: this.className,
-          schoolId: schoolId,
+          schoolId,
+          browserId,
           inHall: true,
           timeOut: new Date().getTime(),
           slug: this.generateUUID()
@@ -119,15 +122,15 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-$primary: #2563eb;
-$text-primary: #1f2937;
-$text-secondary: #6b7280;
-$bg-secondary: #ffffff;
-$border-color: #e5e7eb;
-$shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-$shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
-  0 2px 4px -1px rgba(0, 0, 0, 0.06);
-$radius-lg: 12px;
+// Use CSS variables for theme support
+$primary: var(--color-primary);
+$text-primary: var(--color-text-primary);
+$text-secondary: var(--color-text-secondary);
+$bg-secondary: var(--color-bg-secondary);
+$border-color: var(--color-border);
+$shadow-sm: var(--shadow-sm);
+$shadow-md: var(--shadow-md);
+$radius-lg: var(--radius-lg);
 
 .checkout-form-container {
   width: 100%;
@@ -271,7 +274,7 @@ $radius-lg: 12px;
     }
 
     .vs__search::placeholder {
-      color: #9ca3af;
+      color: var(--color-text-light);
     }
 
     .vs__selected {
@@ -294,11 +297,13 @@ $radius-lg: 12px;
       border-radius: 8px;
       box-shadow: $shadow-md;
       margin-top: 4px;
+      background: $bg-secondary;
     }
 
     .vs__dropdown-option {
       padding: 12px 16px;
       color: $text-primary;
+      background: $bg-secondary;
 
       &--highlight {
         background: rgba($primary, 0.1);

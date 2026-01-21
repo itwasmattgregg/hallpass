@@ -166,20 +166,21 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-$primary: #2563eb;
-$primary-dark: #1e40af;
-$text-primary: #1f2937;
-$text-secondary: #6b7280;
-$text-light: #9ca3af;
-$bg-primary: #f9fafb;
-$bg-secondary: #ffffff;
-$border-color: #e5e7eb;
-$danger: #ef4444;
-$shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-$shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-$shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-$radius-md: 8px;
-$radius-lg: 12px;
+// Use CSS variables for theme support
+$primary: var(--color-primary);
+$primary-dark: var(--color-primary-dark);
+$text-primary: var(--color-text-primary);
+$text-secondary: var(--color-text-secondary);
+$text-light: var(--color-text-light);
+$bg-primary: var(--color-bg-primary);
+$bg-secondary: var(--color-bg-secondary);
+$border-color: var(--color-border);
+$danger: var(--color-danger);
+$shadow-sm: var(--shadow-sm);
+$shadow-md: var(--shadow-md);
+$shadow-lg: var(--shadow-lg);
+$radius-md: var(--radius-md);
+$radius-lg: var(--radius-lg);
 
 .school-select-container {
   min-height: 100vh;

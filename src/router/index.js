@@ -2,7 +2,6 @@ import Vue from 'vue'
 import Router from 'vue-router'
 import Marketing from '@/components/Marketing'
 import Home from '@/components/Home'
-import ViewContact from '@/components/ViewContact'
 import FullList from '@/components/FullList'
 import SchoolSelect from '@/components/SchoolSelect'
 import { getSchoolId } from '@/utils/school'
@@ -32,12 +31,6 @@ const router = new Router({
       path: '/full-list',
       name: 'full-list',
       component: FullList,
-      meta: { requiresSchool: true }
-    },
-    {
-      path: '/:person',
-      name: 'view-contact',
-      component: ViewContact,
       meta: { requiresSchool: true }
     }
   ]

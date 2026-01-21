@@ -70,24 +70,21 @@
         :key="pass.id"
       >
         <div class="pass-card-content">
-          <div class="pass-card-main">
-            <div class="pass-header">
-              <router-link
-                :to="{ name: 'view-contact', params: { person: pass.slug } }"
-                class="student-name"
-              >
-                {{ pass.name }}
-              </router-link>
-              <span
-                class="status-badge"
-                :class="{
-                  'is-active': pass.inHall,
-                  'is-completed': !pass.inHall,
-                }"
-              >
-                {{ pass.inHall ? "Active" : "Completed" }}
-              </span>
-            </div>
+            <div class="pass-card-main">
+              <div class="pass-header">
+                <span class="student-name">
+                  {{ pass.name }}
+                </span>
+                <span
+                  class="status-badge"
+                  :class="{
+                    'is-active': pass.inHall,
+                    'is-completed': !pass.inHall,
+                  }"
+                >
+                  {{ pass.inHall ? "Active" : "Completed" }}
+                </span>
+              </div>
             <div class="pass-details">
               <div class="detail-item">
                 <span class="detail-label">Reason</span>
@@ -274,13 +271,29 @@ export default {
       }
     },
     async checkIn (id) {
+      // Optimistically update the UI immediately
+      const passIndex = this.passes.findIndex(p => p.id === id)
+      const timeIn = new Date().getTime()
+
+      if (passIndex >= 0) {
+        // Use Vue.set to ensure reactivity
+        this.$set(this.passes[passIndex], 'timeIn', timeIn)
+        this.$set(this.passes[passIndex], 'inHall', false)
+      }
+
       try {
         const docRef = doc(db, 'passes', id)
         await updateDoc(docRef, {
-          timeIn: new Date().getTime(),
+          timeIn,
           inHall: false
         })
+        // The onSnapshot will sync the actual state from Firestore
       } catch (error) {
+        // Revert optimistic update on error
+        if (passIndex >= 0) {
+          this.$set(this.passes[passIndex], 'timeIn', null)
+          this.$set(this.passes[passIndex], 'inHall', true)
+        }
         const errorInfo = errorHandler.handleError(
           error,
           'Failed to check in student.'
@@ -308,20 +321,30 @@ export default {
       q,
       (querySnapshot) => {
         this.loading = false
-        this.passes = []
+        // Always rebuild from full snapshot to ensure all passes (active and completed) are shown
+        const newPasses = []
         querySnapshot.forEach((doc) => {
           const data = doc.data()
-          this.passes.push({
+          // Determine inHall status: if timeIn exists, it's completed (inHall = false)
+          // Otherwise, use the inHall field if it exists, or default based on timeIn
+          const hasTimeIn = data.timeIn && data.timeIn > 0
+          const inHallStatus = data.inHall !== undefined
+            ? data.inHall
+            : !hasTimeIn // If inHall not set, infer from timeIn
+
+          newPasses.push({
             id: doc.id,
             name: data.name,
             reason: data.reason,
             class: data.class,
             timeOut: data.timeOut,
             timeIn: data.timeIn || null,
-            inHall: data.inHall,
+            inHall: inHallStatus,
             slug: data.slug
           })
         })
+        // Replace the entire array to ensure Vue reactivity
+        this.passes = newPasses
       },
       (error) => {
         this.loading = false
@@ -350,22 +373,21 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-$primary: #2563eb;
-$primary-dark: #1e40af;
-$secondary: #10b981;
-$text-primary: #1f2937;
-$text-secondary: #6b7280;
-$text-light: #9ca3af;
-$bg-primary: #f9fafb;
-$bg-secondary: #ffffff;
-$border-color: #e5e7eb;
-$shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-$shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
-  0 2px 4px -1px rgba(0, 0, 0, 0.06);
-$shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
-  0 4px 6px -2px rgba(0, 0, 0, 0.05);
-$radius-md: 8px;
-$radius-lg: 12px;
+// Use CSS variables for theme support
+$primary: var(--color-primary);
+$primary-dark: var(--color-primary-dark);
+$secondary: var(--color-secondary);
+$text-primary: var(--color-text-primary);
+$text-secondary: var(--color-text-secondary);
+$text-light: var(--color-text-light);
+$bg-primary: var(--color-bg-primary);
+$bg-secondary: var(--color-bg-secondary);
+$border-color: var(--color-border);
+$shadow-sm: var(--shadow-sm);
+$shadow-md: var(--shadow-md);
+$shadow-lg: var(--shadow-lg);
+$radius-md: var(--radius-md);
+$radius-lg: var(--radius-lg);
 
 .full-list-container {
   width: 100%;
@@ -551,12 +573,6 @@ $radius-lg: 12px;
       font-size: 20px;
       font-weight: 700;
       color: $text-primary;
-      text-decoration: none;
-      transition: color 0.2s ease;
-
-      &:hover {
-        color: $primary;
-      }
     }
 
     .status-badge {
@@ -690,7 +706,12 @@ $radius-lg: 12px;
 .animated-background__header,
 .animated-background__sub {
   animation: placeHolderShimmer 1s linear infinite;
-  background: linear-gradient(to right, #eeeeee 8%, #dddddd 18%, #eeeeee 33%);
+  background: linear-gradient(
+    to right,
+    var(--skeleton-base) 8%,
+    var(--skeleton-highlight) 18%,
+    var(--skeleton-base) 33%
+  );
   background-size: 800px 104px;
   border-radius: 4px;
 }
