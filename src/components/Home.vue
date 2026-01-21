@@ -1,242 +1,475 @@
 <template>
-  <section class="container">
-    <div class="columns">
-      <div class="column">
-        <new-contact/>
-        <h1>Currently Checked Out From Your Class:</h1>
-        <div
-          class="loader-section"
-          v-if="loading">
-          <div class="user-list">
-            <div class="columns">
-              <div class="column is-8">
-                <p class="user-list__header animated-background__header"/>
-                <p class="user-list__sub animated-background__sub"/>
-                <p class="user-list__sub animated-background__sub"/>
-              </div>
-              <div class="column is-4 right">
-                <router-link
-                  class="button is-primary"
-                  to="/user">
-                  View Person
-                </router-link>
-              </div>
-            </div>
-          </div>
+  <section class="home-container">
+    <div class="header-section">
+      <div class="class-name-card">
+        <div class="card-header">
+          <span class="card-icon">📚</span>
+          <h2>Class Name</h2>
+        </div>
+        <div class="field">
+          <input
+            class="input"
+            type="text"
+            v-model="className"
+            placeholder="Enter class name"
+            @focus="isEditing = true"
+            @blur="saveClassName"
+            @keyup.enter="saveClassName"
+          />
+        </div>
+      </div>
 
-          <div class="user-list">
-            <div class="columns">
-              <div class="column is-8">
-                <p class="user-list__header animated-background__header"/>
-                <p class="user-list__sub animated-background__sub"/>
-                <p class="user-list__sub animated-background__sub"/>
-              </div>
-              <div class="column is-4 right">
-                <router-link
-                  class="button is-primary"
-                  to="/user">
-                  View Person
-                </router-link>
-              </div>
-            </div>
-          </div>
+      <check-out-form :className="className" />
+    </div>
 
-          <div class="user-list">
-            <div class="columns">
-              <div class="column is-8">
-                <p class="user-list__header animated-background__header"/>
-                <p class="user-list__sub animated-background__sub"/>
-                <p class="user-list__sub animated-background__sub"/>
-              </div>
-              <div class="column is-4 right">
-                <router-link
-                  class="button is-primary"
-                  to="/user">
-                  View Person
-                </router-link>
-              </div>
-            </div>
-          </div>
+    <div class="active-passes-section">
+      <div class="section-header">
+        <h1>Currently Checked Out</h1>
+        <span class="badge" v-if="!loading">{{ passes.length }} active</span>
+      </div>
 
-          <div class="user-list">
-            <div class="columns">
-              <div class="column is-8">
-                <p class="user-list__header animated-background__header"/>
-                <p class="user-list__sub animated-background__sub"/>
-                <p class="user-list__sub animated-background__sub"/>
-              </div>
-              <div class="column is-4 right">
-                <router-link
-                  class="button is-primary"
-                  to="/user">
-                  View Person
-                </router-link>
-              </div>
+      <!-- Loading state -->
+      <div class="loading-container" v-if="loading">
+        <div class="pass-card loading" v-for="n in 3" :key="n">
+          <div class="pass-card-content">
+            <div class="pass-card-main">
+              <div class="animated-background__header" />
+              <div class="animated-background__sub" />
+              <div class="animated-background__sub" />
+            </div>
+            <div class="pass-card-actions">
+              <div class="animated-background__button" />
             </div>
           </div>
         </div>
+      </div>
 
+      <!-- Active passes -->
+      <div class="passes-list" v-else>
         <div
-          class="user-list"
+          class="pass-card"
           v-for="person in sorted_students"
-          :key="person.slug">
-          <div class="columns">
-            <div class="column is-8">
-              <p class="user-list__header">
+          :key="person.slug"
+        >
+          <div class="pass-card-content">
+            <div class="pass-card-main">
+              <div class="pass-header">
                 <router-link
-                :to="{ name: 'view-contact', params: { person: person.slug }}">
+                  :to="{
+                    name: 'view-contact',
+                    params: { person: person.slug },
+                  }"
+                  class="student-name"
+                >
                   {{ person.name }}
                 </router-link>
-              </p>
-              <div class="inner">
-                <div class="left">
-                  <p class="user-list__sub"><strong>Reason</strong>: {{ person.reason }}</p>
+                <span class="status-indicator active"></span>
+              </div>
+              <div class="pass-details">
+                <div class="detail-item">
+                  <span class="detail-label">Reason</span>
+                  <span class="detail-value">{{ person.reason }}</span>
                 </div>
               </div>
             </div>
-            <div class="column is-4 right">
-              <div>{{ timeSince(person.timeOut) }}</div>
+            <div class="pass-card-actions">
+              <div class="time-display">
+                <span class="time-value">{{ timeSince(person.timeOut) }}</span>
+                <span class="time-label">elapsed</span>
+              </div>
               <button
-                class="button is-primary"
-                v-on:click="checkIn(person.id)">
+                class="button is-primary check-in-btn"
+                v-on:click="checkIn(person.id)"
+              >
                 Check In
-              </Button>
+              </button>
             </div>
           </div>
         </div>
-        <div id='list-wrapper' v-if="passes.length === 0">
-          Nothing to see here
+
+        <!-- Empty state -->
+        <div class="empty-state" v-if="passes.length === 0">
+          <div class="empty-state-icon">✅</div>
+          <h3>All students are in class</h3>
+          <p>No active hall passes at the moment.</p>
         </div>
       </div>
     </div>
   </section>
-
 </template>
 
 <script>
 import db from './firebaseInit'
-import NewContact from './NewContact'
+import {
+  collection,
+  query,
+  where,
+  onSnapshot,
+  doc,
+  updateDoc
+} from 'firebase/firestore'
+import CheckOutForm from './CheckOutForm'
+import errorHandler from './ErrorHandler'
 
 export default {
-  name: 'home',
+  name: 'HomePage',
   data () {
     return {
       passes: [],
       loading: true,
-      now: Math.trunc((new Date()).getTime() / 1000)
+      now: Math.trunc(new Date().getTime() / 1000),
+      unsubscribe: null,
+      intervalId: null,
+      className: localStorage.getItem('hallpass_className') || 'mr. T',
+      isEditing: false
     }
   },
   computed: {
     sorted_students () {
-      return this.passes.sort((a, b) => {
+      return [...this.passes].sort((a, b) => {
         return b.timeOut - a.timeOut
       })
     }
   },
   components: {
-    NewContact
+    CheckOutForm
   },
   methods: {
     timeSince (timeOut) {
-      let seconds = (this.now - Math.trunc((timeOut / 1000))) % 60
-      const minutes = Math.trunc((this.now - Math.trunc((timeOut / 1000))) / 60) % 60
+      const elapsedSeconds = this.now - Math.trunc(timeOut / 1000)
+      const minutes = Math.floor(elapsedSeconds / 60)
+      const hours = Math.floor(minutes / 60)
+      const displayMinutes = minutes % 60
+      const displaySeconds = elapsedSeconds % 60
 
-      if (seconds.toString().length <= 1) {
-        seconds = '0' + seconds.toString()
+      if (minutes < 1) {
+        return `${displaySeconds} ${displaySeconds === 1 ? 'second' : 'seconds'}`
+      } else if (hours < 1) {
+        if (displaySeconds === 0) {
+          return `${minutes} ${minutes === 1 ? 'minute' : 'minutes'}`
+        }
+        return `${minutes} ${minutes === 1 ? 'minute' : 'minutes'} ${displaySeconds} ${displaySeconds === 1 ? 'second' : 'seconds'}`
+      } else if (displayMinutes === 0) {
+        return `${hours} ${hours === 1 ? 'hour' : 'hours'}`
+      } else {
+        return `${hours} ${hours === 1 ? 'hour' : 'hours'} ${displayMinutes} ${displayMinutes === 1 ? 'minute' : 'minutes'}`
       }
-
-      return minutes + ':' + seconds
     },
-    checkIn (id) {
-      const doc = db.collection('passes').doc(id)
-      doc.update({
-        'timeIn': this.now,
-        'inHall': false
-      })
+    async checkIn (id) {
+      try {
+        const docRef = doc(db, 'passes', id)
+        // Use milliseconds timestamp for consistency with timeOut
+        await updateDoc(docRef, {
+          timeIn: new Date().getTime(),
+          inHall: false
+        })
+      } catch (error) {
+        const errorInfo = errorHandler.handleError(
+          error,
+          'Failed to check in student.'
+        )
+        alert(errorInfo.message)
+      }
+    },
+    saveClassName () {
+      localStorage.setItem('hallpass_className', this.className)
+      this.isEditing = false
     }
   },
   created () {
-    db
-      .collection('passes')
-      .where('inHall', '==', true)
-      .onSnapshot(querySnapshot => {
-        this.loading = false
-        querySnapshot.docChanges.forEach(change => {
-          if (change.type === 'added') {
-            const doc = change.doc
-            let data = {
-              id: doc.id,
-              name: doc.data().name,
-              reason: doc.data().reason,
-              class: doc.data().class,
-              timeOut: doc.data().timeOut,
-              slug: doc.data().slug
-            }
-            this.passes.push(data)
+    const q = query(collection(db, 'passes'), where('inHall', '==', true))
+    this.unsubscribe = onSnapshot(q, (querySnapshot) => {
+      this.loading = false
+      querySnapshot.docChanges().forEach((change) => {
+        if (change.type === 'added') {
+          const doc = change.doc
+          const data = {
+            id: doc.id,
+            name: doc.data().name,
+            reason: doc.data().reason,
+            class: doc.data().class,
+            timeOut: doc.data().timeOut,
+            slug: doc.data().slug
           }
-          // Assuming the only thing that will ever be modified is active
-          if (change.type === 'removed') {
-            const id = this.passes.findIndex(contact => contact.id === change.doc.id)
-            if (id >= 0) {
-              this.passes.splice(id, 1)
-            }
+          this.passes.push(data)
+        }
+        // Assuming the only thing that will ever be modified is active
+        if (change.type === 'removed') {
+          const id = this.passes.findIndex(
+            (contact) => contact.id === change.doc.id
+          )
+          if (id >= 0) {
+            this.passes.splice(id, 1)
           }
-        })
+        }
       })
-      // NEed to destroy interval if unmount
-    window.setInterval(() => {
-      this.now = Math.trunc((new Date()).getTime() / 1000)
+    })
+    // Update timer every second
+    this.intervalId = window.setInterval(() => {
+      this.now = Math.trunc(new Date().getTime() / 1000)
     }, 1000)
+  },
+  beforeDestroy () {
+    if (this.unsubscribe) {
+      this.unsubscribe()
+    }
+    if (this.intervalId) {
+      clearInterval(this.intervalId)
+    }
   }
 }
 </script>
 
 <style lang="scss" scoped>
-h1 {
-  font-size: 30px;
-  margin: 30px 0;
+$primary: #2563eb;
+$primary-dark: #1e40af;
+$secondary: #10b981;
+$text-primary: #1f2937;
+$text-secondary: #6b7280;
+$text-light: #9ca3af;
+$bg-primary: #f9fafb;
+$bg-secondary: #ffffff;
+$border-color: #e5e7eb;
+$shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+$shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+$shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+$radius-md: 8px;
+$radius-lg: 12px;
+
+.home-container {
+  width: 100%;
 }
-.user-list {
-  margin-top: 30px;
-  background-color: white;
-  padding: 20px;
-  box-shadow: 0 0 5px 0 rgba(0, 0, 0, 0.05);
-  .column {
-    height: 120px;
-  }
-  .inner {
-    .left {
-      width: 50%;
-      float: left;
-      text-align: left;
+
+.header-section {
+  margin-bottom: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.class-name-card {
+  background: $bg-secondary;
+  border-radius: $radius-lg;
+  padding: 24px;
+  box-shadow: $shadow-sm;
+  border: 1px solid $border-color;
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+
+    .card-icon {
+      font-size: 24px;
     }
-    .right {
-      width: 50%;
-      float: left;
-      text-align: left;
-      p {
-        width: 100%;
-        text-align: left;
+
+    h2 {
+      font-size: 18px;
+      font-weight: 600;
+      color: $text-primary;
+      margin: 0;
+    }
+  }
+
+  .field {
+    margin: 0;
+  }
+}
+
+.active-passes-section {
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+
+    h1 {
+      font-size: 28px;
+      font-weight: 700;
+      color: $text-primary;
+      margin: 0;
+    }
+
+    .badge {
+      background: rgba($primary, 0.1);
+      color: $primary;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+  }
+}
+
+.passes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pass-card {
+  background: $bg-secondary;
+  border-radius: $radius-lg;
+  padding: 24px;
+  box-shadow: $shadow-sm;
+  border: 1px solid $border-color;
+  transition: all 0.2s ease;
+
+  &:hover {
+    box-shadow: $shadow-md;
+    transform: translateY(-2px);
+  }
+
+  &.loading {
+    pointer-events: none;
+  }
+
+  .pass-card-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+
+    @media (max-width: 768px) {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  }
+
+  .pass-card-main {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .pass-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+
+    .student-name {
+      font-size: 20px;
+      font-weight: 700;
+      color: $text-primary;
+      text-decoration: none;
+      transition: color 0.2s ease;
+
+      &:hover {
+        color: $primary;
+      }
+    }
+
+    .status-indicator {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: $text-light;
+
+      &.active {
+        background: $secondary;
+        box-shadow: 0 0 0 4px rgba($secondary, 0.2);
       }
     }
   }
-  .right {
+
+  .pass-details {
     display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .detail-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .detail-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: $text-secondary;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .detail-value {
+    font-size: 15px;
+    color: $text-primary;
+  }
+
+  .pass-card-actions {
+    display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: center;
-    button {
-      background: #4b75ff;
+    gap: 16px;
+    flex-shrink: 0;
+
+    @media (max-width: 768px) {
+      width: 100%;
+      flex-direction: row;
+      justify-content: space-between;
     }
   }
-  .user-list__header {
-    font-size: 20px;
-    font-weight: 700;
+
+  .time-display {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+
+    .time-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: $primary;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .time-label {
+      font-size: 12px;
+      color: $text-secondary;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
   }
-  .user-list__sub {
-    font-size: 15px;
-    margin-top: 10px;
+
+  .check-in-btn {
+    min-width: 120px;
   }
 }
+
+.empty-state {
+  text-align: center;
+  padding: 64px 24px;
+  background: $bg-secondary;
+  border-radius: $radius-lg;
+  border: 1px solid $border-color;
+
+  .empty-state-icon {
+    font-size: 64px;
+    margin-bottom: 16px;
+  }
+
+  h3 {
+    font-size: 20px;
+    font-weight: 600;
+    color: $text-primary;
+    margin: 0 0 8px 0;
+  }
+
+  p {
+    font-size: 15px;
+    color: $text-secondary;
+    margin: 0;
+  }
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
 @keyframes placeHolderShimmer {
   0% {
     background-position: -468px 0;
@@ -245,72 +478,30 @@ h1 {
     background-position: 468px 0;
   }
 }
-.animated-background__header {
-  -webkit-animation-duration: 1s;
-  animation-duration: 1s;
-  -webkit-animation-fill-mode: forwards;
-  animation-fill-mode: forwards;
-  -webkit-animation-iteration-count: infinite;
-  animation-iteration-count: infinite;
-  -webkit-animation-name: placeHolderShimmer;
-  animation-name: placeHolderShimmer;
-  -webkit-animation-timing-function: linear;
-  animation-timing-function: linear;
-  background: #f6f7f8;
-  background: #eeeeee;
-  background: -webkit-gradient(
-    linear,
-    left top,
-    right top,
-    color-stop(8%, #eeeeee),
-    color-stop(18%, #dddddd),
-    color-stop(33%, #eeeeee)
-  );
-  background: -webkit-linear-gradient(
-    left,
-    #eeeeee 8%,
-    #dddddd 18%,
-    #eeeeee 33%
-  );
+
+.animated-background__header,
+.animated-background__sub,
+.animated-background__button {
+  animation: placeHolderShimmer 1s linear infinite;
   background: linear-gradient(to right, #eeeeee 8%, #dddddd 18%, #eeeeee 33%);
-  -webkit-background-size: 800px 104px;
   background-size: 800px 104px;
-  height: 20px;
-  width: 400px;
-  position: relative;
+  border-radius: 4px;
 }
-.animated-background__sub {
-  -webkit-animation-duration: 1s;
-  animation-duration: 1s;
-  -webkit-animation-fill-mode: forwards;
-  animation-fill-mode: forwards;
-  -webkit-animation-iteration-count: infinite;
-  animation-iteration-count: infinite;
-  -webkit-animation-name: placeHolderShimmer;
-  animation-name: placeHolderShimmer;
-  -webkit-animation-timing-function: linear;
-  animation-timing-function: linear;
-  background: #f6f7f8;
-  background: #eeeeee;
-  background: -webkit-gradient(
-    linear,
-    left top,
-    right top,
-    color-stop(8%, #eeeeee),
-    color-stop(18%, #dddddd),
-    color-stop(33%, #eeeeee)
-  );
-  background: -webkit-linear-gradient(
-    left,
-    #eeeeee 8%,
-    #dddddd 18%,
-    #eeeeee 33%
-  );
-  background: linear-gradient(to right, #eeeeee 8%, #dddddd 18%, #eeeeee 33%);
-  -webkit-background-size: 800px 104px;
-  background-size: 800px 104px;
+
+.animated-background__header {
   height: 20px;
-  width: 200px;
-  position: relative;
+  width: 60%;
+  margin-bottom: 12px;
+}
+
+.animated-background__sub {
+  height: 16px;
+  width: 40%;
+  margin-bottom: 8px;
+}
+
+.animated-background__button {
+  height: 40px;
+  width: 120px;
 }
 </style>
